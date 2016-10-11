@@ -72,25 +72,44 @@ fi
 if [ -f "/var/lib/rancher/engine/docker" ]; then
     echo "Found the 'docker' executable"
     DOCKER=/var/lib/rancher/engine/docker
-elif [ -f "/bin/docker" ]; then
-    echo "Found the 'docker' executable"
-    DOCKER=/bin/docker
 else
     echo "Unable to find 'docker' executable"
     exit 1
 fi
 
 # Get Project ID
-PROJECT_ID=$(curl -s -u ${RANCHER_API_KEY} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/projects" | jq -r ".data[] | select( .name == \"${RANCHER_ENV}\" ) | .id")
+RESULT=$(curl -s -u ${RANCHER_API_KEY} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/projects")
+PROJECT_ID=$(echo "${RESULT}" | jq -r ".data[] | select( .name == \"${RANCHER_ENV}\" ) | .id")
 echo "PROJECT_ID: ${PROJECT_ID}"
+if [ -z "${PROJECT_ID}" ]; then
+	echo "Unable to get the Project ID."
+	echo "Perhaps the API key is incorrect."
+	echo "HTTP Result:"
+	echo ${RESULT}
+	exit 1
+fi
 
 # Get Docker Image
-DOCKER_IMAGE=$(curl -s -u ${RANCHER_API_KEY} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/registrationtokens?projectId=${PROJECT_ID}" | jq -r '.data[0].image')
+RESULT=$(curl -s -u ${RANCHER_API_KEY} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/registrationtokens?projectId=${PROJECT_ID}")
+DOCKER_IMAGE=$(echo "${RESULT}" | jq -r '.data[0].image')
 echo "DOCKER_IMAGE: ${DOCKER_IMAGE}"
+if [ -z "${DOCKER_IMAGE}" ]; then
+	echo "Unable to get the Docker Image."
+	echo "HTTP Result:"
+	echo ${RESULT}
+	exit 1
+fi
 
 # Get Token
-TOKEN=$(curl -s -u ${RANCHER_API_KEY} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/registrationtokens?projectId=${PROJECT_ID}" | jq -r '.data[0].token')
+RESULT=$(curl -s -u ${RANCHER_API_KEY} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/registrationtokens?projectId=${PROJECT_ID}")
+TOKEN=$(echo "${RESULT}" | jq -r '.data[0].token')
 echo "TOKEN ${TOKEN}"
+if [ -z "${TOKEN}" ]; then
+	echo "Unable to get the Registration TOKEN."
+	echo "HTTP Result:"
+	echo ${RESULT}
+	exit 1
+fi
 
 # Generate Token if required
 if [ "${TOKEN}" == "null" ]; then
@@ -98,8 +117,15 @@ if [ "${TOKEN}" == "null" ]; then
     curl -s -X POST -u ${RANCHER_API_KEY} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/registrationtokens?projectId=${PROJECT_ID}"
     sleep 5
 
-    TOKEN=$(curl -s -u ${RANCHER_API_KEY} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/registrationtokens?projectId=${PROJECT_ID}" | jq -r '.data[0].token')
-    echo "TOKEN ${TOKEN}"
+	RESULT=$(curl -s -u ${RANCHER_API_KEY} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/registrationtokens?projectId=${PROJECT_ID}")
+	TOKEN=$(echo "${RESULT}" | jq -r '.data[0].token')
+	echo "TOKEN ${TOKEN}"
+	if [ -z "${TOKEN}" ]; then
+		echo "Unable to get the TOKEN."
+		echo "HTTP Result:"
+		echo ${RESULT}
+		exit 1
+	fi
 fi
 
 # Update the rancher agent
