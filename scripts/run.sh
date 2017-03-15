@@ -134,7 +134,7 @@ ${DOCKER} pull ${DOCKER_IMAGE}
 
 # start the ranger/agent container
 if [ -n "${RANCHER_TAGS}" ]; then
-    ${DOCKER} run -d --privileged -e CATTLE_HOST_LABELS="${RANCHER_TAGS}" -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/rancher:/var/lib/rancher ${DOCKER_IMAGE} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/scripts/${TOKEN}"
+    ${DOCKER} run -d --privileged --restart=always -e CATTLE_HOST_LABELS="${RANCHER_TAGS}" -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/rancher:/var/lib/rancher ${DOCKER_IMAGE} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/scripts/${TOKEN}"
 else
-    ${DOCKER} run -d --privileged -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/rancher:/var/lib/rancher ${DOCKER_IMAGE} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/scripts/${TOKEN}"
+    ${DOCKER} run -d --privileged --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/rancher:/var/lib/rancher ${DOCKER_IMAGE} "${HTTP_SCHEME}://${RANCHER_HOST}/v1/scripts/${TOKEN}"
 fi
